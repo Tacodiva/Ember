@@ -17,6 +17,7 @@ public readonly unsafe struct ManagedMemorySpan<T> : IDisposable where T : unman
     public nint LengthLong => MemorySpan.LengthLong;
     public int Length => MemorySpan.Length;
     public T* Pointer => MemorySpan.Pointer;
+    public bool IsNull => MemorySpan.IsNull;
 
     public ManagedMemorySpan(PinnedMemoryHandle memoryHandle, MemorySpan<T> memorySpan) {
         MemoryHandle = memoryHandle;

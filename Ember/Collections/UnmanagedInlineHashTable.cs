@@ -59,9 +59,14 @@ public unsafe struct UnmanagedInlineHashTable<TKey, TValue, TValueRef, TMethods>
     private Entry* _linkedEntries;
     private Entry* _linkedFreeList;
 
-    public UnmanagedInlineHashTable(int capacity = 16, int buckets = 17) => Init(capacity, buckets);
+    public UnmanagedInlineHashTable(int capacity = 16) => Init(capacity);
 
-    public void Init(int capacity = 16, int buckets = 17) {
+    public UnmanagedInlineHashTable(int capacity, int buckets) => Init(capacity, buckets);
+
+    public void Init(int capacity = 16)
+        => Init(capacity, HashUtils.GetPrime(capacity));
+
+    public void Init(int capacity, int buckets) {
         _count = 0;
         _bucketsCapacity = buckets;
         _bucketsCapacityMultiplier = HashUtils.GetFastModMultiplier((uint)buckets);

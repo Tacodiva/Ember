@@ -12,10 +12,10 @@ namespace Ember.Collections;
 public unsafe readonly struct UnmanagedConcurrentHashSet<T> : ICollection<T>, IDisposable where T : unmanaged {
 
     public static UnmanagedConcurrentHashSet<T> Allocate(int capacity = 16, int buckets = 17) {
-        return new UnmanagedConcurrentHashSet<T>(UnmanagedConcurrentHashTable<ValuePtr<T>, T, ValuePtr<T>, UnmanagedHashSet<T>.HashTableMethods>.Allocate(capacity, buckets));
+        return new UnmanagedConcurrentHashSet<T>(UnmanagedConcurrentHashTable<ValuePtr<T>, T, ValuePtr<T>, T, UnmanagedHashSet<T>.HashTableMethods>.Allocate(capacity, buckets));
     }
 
-    private readonly UnmanagedConcurrentHashTable<ValuePtr<T>, T, ValuePtr<T>, UnmanagedHashSet<T>.HashTableMethods> _table;
+    private readonly UnmanagedConcurrentHashTable<ValuePtr<T>, T, ValuePtr<T>, T, UnmanagedHashSet<T>.HashTableMethods> _table;
 
     public readonly int Count => _table.Count;
 
@@ -23,7 +23,7 @@ public unsafe readonly struct UnmanagedConcurrentHashSet<T> : ICollection<T>, ID
     public readonly bool IsNull => _table.IsNull;
     public readonly bool IsEmpty => Count == 0;
 
-    private UnmanagedConcurrentHashSet(UnmanagedConcurrentHashTable<ValuePtr<T>, T, ValuePtr<T>, UnmanagedHashSet<T>.HashTableMethods> table) {
+    private UnmanagedConcurrentHashSet(UnmanagedConcurrentHashTable<ValuePtr<T>, T, ValuePtr<T>, T, UnmanagedHashSet<T>.HashTableMethods> table) {
         _table = table;
     }
 
@@ -67,12 +67,12 @@ public unsafe readonly struct UnmanagedConcurrentHashSet<T> : ICollection<T>, ID
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     public struct Enumerator : IEnumerator<T> {
-        private UnmanagedInlineConcurrentHashTable<ValuePtr<T>, T, ValuePtr<T>, UnmanagedHashSet<T>.HashTableMethods>.Enumerator _enumerator;
+        private UnmanagedInlineConcurrentHashTable<ValuePtr<T>, T, ValuePtr<T>, T, UnmanagedHashSet<T>.HashTableMethods>.UnmanagedEnumerator _enumerator;
 
         public T Current => _enumerator.Current.Get();
         object IEnumerator.Current => Current;
 
-        internal Enumerator(UnmanagedInlineConcurrentHashTable<ValuePtr<T>, T, ValuePtr<T>, UnmanagedHashSet<T>.HashTableMethods>.Enumerator enumerator) {
+        internal Enumerator(UnmanagedInlineConcurrentHashTable<ValuePtr<T>, T, ValuePtr<T>, T, UnmanagedHashSet<T>.HashTableMethods>.UnmanagedEnumerator enumerator) {
             _enumerator = enumerator;
         }
 

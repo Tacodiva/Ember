@@ -29,7 +29,7 @@ public unsafe readonly struct UnmanagedDictionary<TKey, TValue> : IDictionary<TK
 
     private readonly UnmanagedHashTable<ValuePtr<TKey>, TableValue, TableValueRef, HashTableMethods> _table;
 
-    internal readonly struct HashTableMethods : IHashTableMethods<ValuePtr<TKey>, TableValue, TableValueRef> {
+    internal readonly struct HashTableMethods : IConcurrentHashTableMethods<ValuePtr<TKey>, TableValue, TableValueRef, TValue> {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static uint GetKeyHashCode(ValuePtr<TKey> key) => (uint)key.Get().GetHashCode();
@@ -61,6 +61,10 @@ public unsafe readonly struct UnmanagedDictionary<TKey, TValue> : IDictionary<TK
         public static void DereferenceValue(TableValueRef valueRef, TableValue* destination) {
             destination->Key = valueRef.Key;
             destination->Value = valueRef.Value;
+        }
+
+        public static void CopyValueOut(TableValue* value, TValue* valueOut) {
+            *valueOut = value->Value;
         }
     }
 

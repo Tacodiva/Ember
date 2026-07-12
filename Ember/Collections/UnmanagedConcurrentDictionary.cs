@@ -17,6 +17,7 @@ public unsafe readonly struct UnmanagedConcurrentDictionary<TKey, TValue> : IDic
                 ValuePtr<TKey>,
                 UnmanagedDictionary<TKey, TValue>.TableValue,
                 UnmanagedDictionary<TKey, TValue>.TableValueRef,
+                TValue,
                 UnmanagedDictionary<TKey, TValue>.HashTableMethods
             >.Allocate(capacity, buckets)
         );
@@ -26,6 +27,7 @@ public unsafe readonly struct UnmanagedConcurrentDictionary<TKey, TValue> : IDic
         ValuePtr<TKey>,
         UnmanagedDictionary<TKey, TValue>.TableValue,
         UnmanagedDictionary<TKey, TValue>.TableValueRef,
+        TValue,
         UnmanagedDictionary<TKey, TValue>.HashTableMethods
     > _table;
 
@@ -39,6 +41,7 @@ public unsafe readonly struct UnmanagedConcurrentDictionary<TKey, TValue> : IDic
         ValuePtr<TKey>,
         UnmanagedDictionary<TKey, TValue>.TableValue,
         UnmanagedDictionary<TKey, TValue>.TableValueRef,
+        TValue,
         UnmanagedDictionary<TKey, TValue>.HashTableMethods
     > table) {
         _table = table;
@@ -86,18 +89,18 @@ public unsafe readonly struct UnmanagedConcurrentDictionary<TKey, TValue> : IDic
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Remove(TKey key, out TValue value) {
-        UnmanagedDictionary<TKey, TValue>.TableValue tableValue;
+        TValue tableValue;
         bool success = _table.InlineRemove(&key, &tableValue);
-        if (success) value = tableValue.Value;
+        if (success) value = tableValue;
         else value = default;
         return success;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Remove(TKey key, TValue* outValue) {
-        UnmanagedDictionary<TKey, TValue>.TableValue tableValue;
+        TValue tableValue;
         bool success = _table.InlineRemove(&key, &tableValue);
-        if (success) *outValue = tableValue.Value;
+        if (success) *outValue = tableValue;
         return success;
     }
 
@@ -105,24 +108,24 @@ public unsafe readonly struct UnmanagedConcurrentDictionary<TKey, TValue> : IDic
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value) {
-        UnmanagedDictionary<TKey, TValue>.TableValue tableValue;
+        TValue tableValue;
 
         if (!_table.InlineTryGet(&key, &tableValue)) {
             value = default;
             return false;
         }
 
-        value = tableValue.Value;
+        value = tableValue;
         return true;
     }
 
     public TValue GetValue(TKey key) {
-        UnmanagedDictionary<TKey, TValue>.TableValue tableValue;
+        TValue tableValue;
 
         if (!_table.InlineTryGet(&key, &tableValue))
             throw new KeyNotFoundException("Key not present in dictionary.");
 
-        return tableValue.Value;
+        return tableValue;
     }
 
     public TValue this[TKey key] {
@@ -161,8 +164,9 @@ public unsafe readonly struct UnmanagedConcurrentDictionary<TKey, TValue> : IDic
             ValuePtr<TKey>,
             UnmanagedDictionary<TKey, TValue>.TableValue,
             UnmanagedDictionary<TKey, TValue>.TableValueRef,
+            TValue,
             UnmanagedDictionary<TKey, TValue>.HashTableMethods
-        >.Enumerator _enumerator;
+        >.UnmanagedEnumerator _enumerator;
 
         public KeyValuePair<TKey, TValue> Current => _enumerator.Current.Get();
         object IEnumerator.Current => Current;
@@ -171,8 +175,9 @@ public unsafe readonly struct UnmanagedConcurrentDictionary<TKey, TValue> : IDic
             ValuePtr<TKey>,
             UnmanagedDictionary<TKey, TValue>.TableValue,
             UnmanagedDictionary<TKey, TValue>.TableValueRef,
+            TValue,
             UnmanagedDictionary<TKey, TValue>.HashTableMethods
-        >.Enumerator enumerator) {
+        >.UnmanagedEnumerator enumerator) {
             _enumerator = enumerator;
         }
 

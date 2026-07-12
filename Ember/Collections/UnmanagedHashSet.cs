@@ -16,7 +16,7 @@ public unsafe readonly struct UnmanagedHashSet<T> : ISet<T>, IDisposable where T
 
     private readonly UnmanagedHashTable<ValuePtr<T>, T, ValuePtr<T>, HashTableMethods> _table;
 
-    internal readonly struct HashTableMethods : IHashTableMethods<ValuePtr<T>, T, ValuePtr<T>> {
+    internal readonly struct HashTableMethods : IConcurrentHashTableMethods<ValuePtr<T>, T, ValuePtr<T>, T> {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static uint GetKeyHashCode(ValuePtr<T> key) => (uint)key.Get().GetHashCode();
@@ -44,6 +44,10 @@ public unsafe readonly struct UnmanagedHashSet<T> : ISet<T>, IDisposable where T
 
         public static void DereferenceValue(ValuePtr<T> valueRef, T* destination) {
             *destination = valueRef;
+        }
+
+        public static void CopyValueOut(T* value, T* valueOut) {
+            *valueOut = *value;
         }
     }
 

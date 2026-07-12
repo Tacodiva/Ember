@@ -12,9 +12,36 @@ using Ember.Utils;
 
 namespace Ember.Collections;
 
-public unsafe struct UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef, TMethods> : IDisposable
+public unsafe interface IConcurrentHashTableMethods<TKey, TValue, TValueRef, TValueOut>
+    : IHashTableMethods<TKey, TValue, TValueRef>
+    where TKey : allows ref struct
     where TValue : unmanaged
-    where TMethods : struct, IHashTableMethods<TKey, TValue, TValueRef> {
+    where TValueRef : allows ref struct
+    where TValueOut : unmanaged {
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static abstract void CopyValueOut(TValue* value, TValueOut* valueOut);
+
+}
+
+public static class UnmanagedInlineConcurrentHashTable {
+    public static UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef, TValueOut, TMethods>.RefEnumerable Values<TKey, TValue, TValueRef, TValueOut, TMethods>(this ref UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef, TValueOut, TMethods> @this)
+        where TKey : allows ref struct
+        where TValue : unmanaged
+        where TValueRef : allows ref struct
+        where TValueOut : unmanaged
+        where TMethods : struct, IConcurrentHashTableMethods<TKey, TValue, TValueRef, TValueOut> {
+        return new(ref @this);
+    }
+}
+
+
+public unsafe struct UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef, TValueOut, TMethods> : IDisposable
+    where TKey : allows ref struct
+    where TValue : unmanaged
+    where TValueRef : allows ref struct
+    where TValueOut : unmanaged
+    where TMethods : struct, IConcurrentHashTableMethods<TKey, TValue, TValueRef, TValueOut> {
 
 #if !DEBUG
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -68,7 +95,14 @@ public unsafe struct UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef,
 
     public readonly int Count => _count;
 
-    public void Init(int capacity = 16, int buckets = 17) {
+    public UnmanagedInlineConcurrentHashTable(int capacity = 16) => Init(capacity);
+
+    public UnmanagedInlineConcurrentHashTable(int capacity, int buckets) => Init(capacity, buckets);
+
+    public void Init(int capacity = 16)
+        => Init(capacity, HashUtils.GetPrime(capacity));
+
+    public void Init(int capacity, int buckets) {
         _pointerAccessCount = 0;
         _pointerWriteLock = false;
         _count = 0;
@@ -256,14 +290,10 @@ public unsafe struct UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef,
 #endif
     private void ResizeLinkedEntries() {
         int oldCapacity = _linkedEntryCapacity;
-        int capacity = oldCapacity * 2;
+        _linkedEntryCapacity *= 2;
 
-        while (capacity < _linkedEntryCount)
-            capacity *= 2;
-
-        _linkedEntryCapacity = capacity;
         long freeListOffset = _linkedFreeList - _linkedEntries;
-        _linkedEntries = MemoryUtils.Resize(_linkedEntries, oldCapacity, capacity);
+        _linkedEntries = MemoryUtils.Resize(_linkedEntries, oldCapacity, _linkedEntryCapacity);
 
         Bucket* buckets = _buckets;
         for (int i = 0; i < _bucketsCapacity; i++)
@@ -495,12 +525,12 @@ public unsafe struct UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef,
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public bool TryGet(TKey key, TValue* outValue) => InlineTryGet(key, outValue);
+    public bool TryGet(TKey key, TValueOut* outValue) => InlineTryGet(key, outValue);
 
 #if !DEBUG
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-    public bool InlineTryGet(TKey key, TValue* outValue) {
+    public bool InlineTryGet(TKey key, TValueOut* outValue) {
         ValidateSelf();
         EnterPointerReadLock();
 
@@ -523,7 +553,8 @@ public unsafe struct UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef,
                     ValidateEntry(entry, true);
 
                     if (entry->HashCode == hashCode && TMethods.IsKeyValueEqual(key, &entry->Value)) {
-                        if (outValue != null) *outValue = entry->Value;
+                        if (outValue != null)
+                            TMethods.CopyValueOut(&entry->Value, outValue);
                         return true;
                     }
 
@@ -540,12 +571,12 @@ public unsafe struct UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef,
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public bool GetOrSet(TValueRef valueRef, TValue* outValue) => InlineGetOrSet(valueRef, outValue);
+    public bool GetOrSet(TValueRef valueRef, TValueOut* outValue) => InlineGetOrSet(valueRef, outValue);
 
 #if !DEBUG
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-    public bool InlineGetOrSet(TValueRef valueRef, TValue* outValue) {
+    public bool InlineGetOrSet(TValueRef valueRef, TValueOut* outValue) {
         ValidateSelf();
         EnterPointerReadLock();
 
@@ -566,7 +597,8 @@ public unsafe struct UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef,
                         ValidateEntry(entry, true);
 
                         if (entry->HashCode == hashCode && TMethods.IsValueRefValueEqual(valueRef, &entry->Value)) {
-                            *outValue = entry->Value;
+                            if (outValue != null)
+                                TMethods.CopyValueOut(&entry->Value, outValue);
                             return false;
                         }
 
@@ -589,6 +621,7 @@ public unsafe struct UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef,
                 entry->Allocated = true;
 
                 TMethods.DereferenceValue(valueRef, &entry->Value);
+                TMethods.CopyValueOut(&entry->Value, outValue);
 
                 entry->HashCode = hashCode;
                 EndValueWrite();
@@ -602,8 +635,6 @@ public unsafe struct UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef,
         }
 
         TryResizeBuckets();
-
-        TMethods.DereferenceValue(valueRef, outValue);
 
         return true;
     }
@@ -681,12 +712,12 @@ public unsafe struct UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef,
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public bool Remove(TKey key, TValue* outValue = null) => InlineRemove(key, outValue);
+    public bool Remove(TKey key, TValueOut* outValue = null) => InlineRemove(key, outValue);
 
 #if !DEBUG
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-    public bool InlineRemove(TKey key, TValue* outValue = null) {
+    public bool InlineRemove(TKey key, TValueOut* outValue = null) {
         ValidateSelf();
         EnterPointerReadLock();
 
@@ -710,7 +741,7 @@ public unsafe struct UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef,
                         if (entry->HashCode == hashCode && TMethods.IsKeyValueEqual(key, &entry->Value)) {
 
                             if (outValue != null)
-                                *outValue = entry->Value;
+                                TMethods.CopyValueOut(&entry->Value, outValue);
 
                             BeginValueWrite();
 
@@ -790,9 +821,9 @@ public unsafe struct UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef,
     private readonly void ValidateSelf() {
 #if EMBER_SAFETY_CHECKS
         if (_memoryGuard != 0)
-            throw new InvalidOperationException($"Memory guard '{nameof(UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef, TMethods>)}.{nameof(_memoryGuard)}' was corrupted to 0x{_memoryGuard:X}");
-        MemoryUtils.ValidateAllocation(_buckets, $"{nameof(UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef, TMethods>)}.{nameof(_buckets)}", _bucketsCapacity);
-        MemoryUtils.ValidateAllocation(_linkedEntries, $"{nameof(UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef, TMethods>)}.{nameof(_linkedEntries)}", _linkedEntryCapacity);
+            throw new InvalidOperationException($"Memory guard '{nameof(UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef, TValueOut, TMethods>)}.{nameof(_memoryGuard)}' was corrupted to 0x{_memoryGuard:X}");
+        MemoryUtils.ValidateAllocation(_buckets, $"{nameof(UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef, TValueOut, TMethods>)}.{nameof(_buckets)}", _bucketsCapacity);
+        MemoryUtils.ValidateAllocation(_linkedEntries, $"{nameof(UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef, TValueOut, TMethods>)}.{nameof(_linkedEntries)}", _linkedEntryCapacity);
 #endif
     }
 
@@ -816,27 +847,27 @@ public unsafe struct UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef,
 #endif
     }
 
-    public readonly struct Enumerable : IEnumerable<Ptr<TValue>> {
-        public readonly UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef, TMethods>* Table;
+    public readonly struct UnmanagedEnumerable : IEnumerable<Ptr<TValue>> {
+        public readonly UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef, TValueOut, TMethods>* Table;
         public readonly bool IsInternal;
 
-        internal Enumerable(UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef, TMethods>* table, bool isInternal) {
+        internal UnmanagedEnumerable(UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef, TValueOut, TMethods>* table, bool isInternal) {
             Table = table;
             IsInternal = isInternal;
         }
 
-        public Enumerable(UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef, TMethods>* table) :
+        public UnmanagedEnumerable(UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef, TValueOut, TMethods>* table) :
             this(table, false) { }
 
-        public Enumerator GetEnumerator() => new(Table, IsInternal);
+        public UnmanagedEnumerator GetEnumerator() => new(Table, IsInternal);
         IEnumerator<Ptr<TValue>> IEnumerable<Ptr<TValue>>.GetEnumerator() => GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 
-    public struct Enumerator : IEnumerator<Ptr<TValue>> {
+    public struct UnmanagedEnumerator : IEnumerator<Ptr<TValue>> {
         private int _bucket;
         private Entry* _entry;
-        private readonly UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef, TMethods>* _table;
+        private readonly UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef, TValueOut, TMethods>* _table;
         private readonly bool _isInternal;
 
 #if EMBER_SAFETY_CHECKS
@@ -851,7 +882,7 @@ public unsafe struct UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef,
         }
         object IEnumerator.Current => Current;
 
-        internal Enumerator(UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef, TMethods>* tbl, bool isInternal) {
+        internal UnmanagedEnumerator(UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef, TValueOut, TMethods>* tbl, bool isInternal) {
             _table = tbl;
             _table->ValidateSelf();
             _isInternal = isInternal;
@@ -865,7 +896,7 @@ public unsafe struct UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef,
             Reset();
         }
 
-        public Enumerator(UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef, TMethods>* tbl) :
+        public UnmanagedEnumerator(UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef, TValueOut, TMethods>* tbl) :
             this(tbl, false) { }
 
         public bool MoveNext() {
@@ -898,6 +929,75 @@ public unsafe struct UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef,
             }
         }
     }
+
+    public readonly ref struct RefEnumerable {
+        public readonly ref UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef, TValueOut, TMethods> Table;
+
+        internal RefEnumerable(ref UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef, TValueOut, TMethods> table) {
+            Table = ref table;
+        }
+
+        public RefEnumerator GetEnumerator() => new(ref Table);
+    }
+
+    public ref struct RefEnumerator : IEnumerator<Ptr<TValue>> {
+        private int _bucket;
+        private Entry* _entry;
+        private readonly ref UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef, TValueOut, TMethods> _table;
+
+#if EMBER_SAFETY_CHECKS
+        private readonly ulong _modificationNumber;
+#endif
+
+        public Ptr<TValue> Current {
+            get {
+                ValidateEntry(_entry, true);
+                return &_entry->Value;
+            }
+        }
+        object IEnumerator.Current => Current;
+
+        internal RefEnumerator(ref UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef, TValueOut, TMethods> tbl) {
+            _table = ref tbl;
+            _table.ValidateSelf();
+#if EMBER_SAFETY_CHECKS
+            _modificationNumber = _table._modificationNumber;
+#endif
+            Interlocked.Increment(ref _table._publicEnumeratorCount);
+            _table.BeginValueWriteLock();
+
+            Reset();
+        }
+
+        public bool MoveNext() {
+            _table.ValidateSelf();
+
+#if EMBER_SAFETY_CHECKS
+            if (_modificationNumber != _table._modificationNumber)
+                throw new InvalidOperationException("Collection was modified; enumeration operation may not execute");
+#endif
+
+            if (_bucket == _table._bucketsCapacity) return false;
+            if (_bucket == -1 || _entry->Next == null) {
+                while (++_bucket < _table._bucketsCapacity && !(_entry = &_table._buckets[_bucket].Head)->Allocated) ;
+                return _bucket != _table._bucketsCapacity;
+            } else {
+                _entry = _entry->Next;
+                return true;
+            }
+        }
+
+        public void Reset() {
+            _bucket = -1;
+        }
+
+        public readonly void Dispose() {
+            _table.EndValueWriteLock();
+            int value = Interlocked.Decrement(ref _table._publicEnumeratorCount);
+            Debug.Assert(value >= 0);
+        }
+    }
+
 
     [Conditional("DEBUG")]
     public void DebugValidate() {
