@@ -112,7 +112,7 @@ public unsafe readonly struct MemorySpan : IMemorySpan {
     }
 }
 
-public unsafe readonly struct MemorySpan<T> : IMemorySpan<T>, IEnumerable<T> where T : unmanaged {
+public unsafe readonly struct MemorySpan<T> : IMemorySpan<T>, IReadOnlyCollection<T> where T : unmanaged {
     public readonly T* Pointer;
     public readonly nint LengthLong;
     public int Length => (int)LengthLong;
@@ -276,6 +276,8 @@ public unsafe readonly struct MemorySpan<T> : IMemorySpan<T>, IEnumerable<T> whe
     public static implicit operator ReadOnlySpan<T>(MemorySpan<T> memorySpan) => memorySpan.AsSpan();
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static explicit operator MemorySpan<T>(Span<T> span) => new(span);
+
+    int IReadOnlyCollection<T>.Count => Length;
 
     public Enumerator GetEnumerator() => new(this);
     IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
