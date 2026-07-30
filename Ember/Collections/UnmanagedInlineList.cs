@@ -35,6 +35,7 @@ public unsafe struct UnmanagedInlineList<T> : IList<T>, IReadOnlyList<T>, IDispo
         _capacity = contents.Length;
         _count = contents.Length;
         _buffer = MemoryUtils.AllocateUninitialized<T>(contents.Length);
+        contents.CopyTo(new Span<T>(_buffer, _count));
 
         InitMemoryGuard();
     }
@@ -304,7 +305,7 @@ public unsafe struct UnmanagedInlineList<T> : IList<T>, IReadOnlyList<T>, IDispo
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool MoveNext() {
-            return ++Index != List.Count;
+            return ++Index < List.Count;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

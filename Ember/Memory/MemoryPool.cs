@@ -30,7 +30,7 @@ public unsafe sealed class MemoryPool : IDisposable {
     public MemoryPool(int spanLength, int maxSizeBytes = -1) {
         _pool.Init();
         AllocationLengthBytes = spanLength;
-        MaxAllocationCount = maxSizeBytes / AllocationLengthBytes;
+        MaxAllocationCount = maxSizeBytes == -1 ? -1 : maxSizeBytes / AllocationLengthBytes;
     }
 
     public MemorySpan Borrow() {
@@ -49,7 +49,7 @@ public unsafe sealed class MemoryPool : IDisposable {
 
         ReferenceSpinLock.Aquire(ref _lock);
 
-        if (AllocationCount > MaxAllocationCount) {
+        if (MaxAllocationCount != -1 && AllocationCount > MaxAllocationCount) {
             --AllocationCount;
 
             ReferenceSpinLock.Release(ref _lock);
