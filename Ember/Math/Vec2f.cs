@@ -202,10 +202,10 @@ public struct Vec2f : IEquatable<Vec2f>, IFormattable {
     public static Vec2f Negate(Vec2f value) => Vector2.Negate(value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec2f Normalize(Vec2f value) => Vector2.Negate(value);
+    public static Vec2f Normalize(Vec2f value) => Vector2.Normalize(value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec2f Reflect(Vec2f value) => Vector2.Negate(value);
+    public static Vec2f Reflect(Vec2f value, Vec2f normal) => Vector2.Reflect(value, normal);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec2f SquareRoot(Vec2f value) => Vector2.SquareRoot(value);
