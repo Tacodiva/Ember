@@ -234,10 +234,10 @@ public struct Vec3f : IEquatable<Vec3f>, IFormattable {
     public static Vec3f Negate(Vec3f value) => Vector3.Negate(value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec3f Normalize(Vec3f value) => Vector3.Negate(value);
+    public static Vec3f Normalize(Vec3f value) => Vector3.Normalize(value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec3f Reflect(Vec3f value) => Vector3.Negate(value);
+    public static Vec3f Reflect(Vec3f value, Vec3f normal) => Vector3.Reflect(value, normal);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec3f SquareRoot(Vec3f value) => Vector3.SquareRoot(value);

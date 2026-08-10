@@ -249,10 +249,7 @@ public partial struct Vec4f : IEquatable<Vec4f>, IFormattable {
     public static Vec4f Negate(Vec4f value) => Vector4.Negate(value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec4f Normalize(Vec4f value) => Vector4.Negate(value);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec4f Reflect(Vec4f value) => Vector4.Negate(value);
+    public static Vec4f Normalize(Vec4f value) => Vector4.Normalize(value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec4f SquareRoot(Vec4f value) => Vector4.SquareRoot(value);
