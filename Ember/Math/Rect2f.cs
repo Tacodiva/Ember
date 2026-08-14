@@ -12,22 +12,44 @@ public struct Rect2f : IEquatable<Rect2f> {
     public Vec2f PosMin;
     public Vec2f Size;
 
+    public float Width {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        readonly get => Size.X;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        set => Size.X = value;
+    }
+
+    public float Height {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        readonly get => Size.Y;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        set => Size.Y = value;
+    }
+
+    public float X {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        readonly get => PosMin.X;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        set => PosMin.X = value;
+    }
+
+    public float Y {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        readonly get => PosMin.Y;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        set => PosMin.Y = value;
+    }
+
     public Vec2f PosMax {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        readonly get {
-            return PosMin + Size;
-        }
+        readonly get => PosMin + Size;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set {
-            Size = value - PosMin;
-        }
+        set => Size = value - PosMin;
     }
 
     public Vec2f PosMaxX {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        readonly get {
-            return (PosMin.X + Size.X, PosMin.Y);
-        }
+        readonly get => (PosMin.X + Size.X, PosMin.Y);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set {
             Size.X = value.X - PosMin.X;
@@ -37,9 +59,7 @@ public struct Rect2f : IEquatable<Rect2f> {
 
     public Vec2f PosMaxY {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        readonly get {
-            return (PosMin.X, PosMin.Y + Size.Y);
-        }
+        readonly get => (PosMin.X, PosMin.Y + Size.Y);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set {
             PosMin.X = value.X;

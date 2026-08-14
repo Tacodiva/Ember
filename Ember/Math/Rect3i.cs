@@ -12,6 +12,48 @@ public struct Rect3i : IEquatable<Rect3i> {
     public Vec3i PosMin;
     public Vec3i Size;
 
+    public int Width {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        readonly get => Size.X;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        set => Size.X = value;
+    }
+
+    public int Height {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        readonly get => Size.Y;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        set => Size.Y = value;
+    }
+
+    public int Depth {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        readonly get => Size.Z;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        set => Size.Z = value;
+    }
+
+    public int X {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        readonly get => PosMin.X;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        set => PosMin.X = value;
+    }
+
+    public int Y {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        readonly get => PosMin.Y;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        set => PosMin.Y = value;
+    }
+
+    public int Z {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        readonly get => PosMin.Z;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        set => PosMin.Z = value;
+    }
+
     public Vec3i PosMax {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         readonly get {

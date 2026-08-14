@@ -12,6 +12,48 @@ public struct Rect3f : IEquatable<Rect3f> {
     public Vec3f PosMin;
     public Vec3f Size;
 
+    public float Width {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        readonly get => Size.X;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        set => Size.X = value;
+    }
+
+    public float Height {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        readonly get => Size.Y;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        set => Size.Y = value;
+    }
+
+    public float Depth {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        readonly get => Size.Z;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        set => Size.Z = value;
+    }
+
+    public float X {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        readonly get => PosMin.X;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        set => PosMin.X = value;
+    }
+
+    public float Y {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        readonly get => PosMin.Y;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        set => PosMin.Y = value;
+    }
+
+    public float Z {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        readonly get => PosMin.Z;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        set => PosMin.Z = value;
+    }
+
     public Vec3f PosMax {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         readonly get {
