@@ -112,10 +112,10 @@ public struct Vec2f : IEquatable<Vec2f>, IFormattable {
     public static Vec2b operator !=(float left, Vec2f right) => new(left != right.X, left != right.Y);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec2b operator ==(Vec2f left, Vec2f right) => new(left.X == right.X, left.Y == right.Y);
+    public static bool operator ==(Vec2f left, Vec2f right) => left._internal == right._internal;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec2b operator !=(Vec2f left, Vec2f right) => new(left.X != right.X, left.Y != right.Y);
+    public static bool operator !=(Vec2f left, Vec2f right) => left._internal != right._internal;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec2b operator <(Vec2f left, Vec2f right) => new(left.X < right.X, left.Y < right.Y);

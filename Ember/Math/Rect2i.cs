@@ -145,9 +145,9 @@ public struct Rect2i : IEquatable<Rect2i> {
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator ==(Rect2i a, Rect2i b) => (a.PosMin == b.PosMin).All() && (a.Size == b.Size).All();
+    public static bool operator ==(Rect2i a, Rect2i b) => a.PosMin == b.PosMin && a.Size == b.Size;
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator !=(Rect2i a, Rect2i b) => (a.PosMin != b.PosMin).Any() || (a.Size != b.Size).Any();
+    public static bool operator !=(Rect2i a, Rect2i b) => a.PosMin != b.PosMin || a.Size != b.Size;
 
     public static implicit operator Rect2f(Rect2i rect) => new(rect.PosMin, rect.Size);
 }

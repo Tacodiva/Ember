@@ -134,10 +134,10 @@ public struct Vec2i : IEquatable<Vec2i>, IFormattable {
     public static Vec2b operator !=(int left, Vec2i right) => new(left != right.X, left != right.Y);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec2b operator ==(Vec2i left, Vec2i right) => new(left.X == right.X, left.Y == right.Y);
+    public static bool operator ==(Vec2i left, Vec2i right) => left.X == right.X && left.Y == right.Y;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec2b operator !=(Vec2i left, Vec2i right) => new(left.X != right.X, left.Y != right.Y);
+    public static bool operator !=(Vec2i left, Vec2i right) => left.X != right.X || left.Y != right.Y;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec2b operator <(Vec2i left, Vec2i right) => new(left.X < right.X, left.Y < right.Y);
@@ -246,7 +246,7 @@ public struct Vec2i : IEquatable<Vec2i>, IFormattable {
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly bool Equals(Vec2i other) => (this == other).All();
+    public readonly bool Equals(Vec2i other) => this == other;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override readonly int GetHashCode() => HashCode.Combine(X, Y);

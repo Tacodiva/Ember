@@ -43,10 +43,10 @@ public struct Vec2b : IEquatable<Vec2b> {
     public static Vec2b operator !(Vec2b v) => new(!v.X, !v.Y);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec2b operator ==(Vec2b left, Vec2b right) => new(left.X == right.X, left.Y == right.Y);
+    public static bool operator ==(Vec2b left, Vec2b right) => left.X == right.X && left.Y == right.Y;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec2b operator !=(Vec2b left, Vec2b right) => new(left.X != right.X, left.Y != right.Y);
+    public static bool operator !=(Vec2b left, Vec2b right) => left.X != right.X || left.Y != right.Y;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec2b operator ==(Vec2b left, bool right) => new(left.X == right, left.Y == right);

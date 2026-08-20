@@ -112,10 +112,10 @@ public struct Vec3i128 : IEquatable<Vec3i128> {
     public static Vec3b operator !=(int left, Vec3i128 right) => new(left != right.X, left != right.Y, left != right.Z);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec3b operator ==(Vec3i128 left, Vec3i128 right) => new(left.X == right.X, left.Y == right.Y, left.Z == right.Z);
+    public static bool operator ==(Vec3i128 left, Vec3i128 right) => left.X == right.X && left.Y == right.Y && left.Z == right.Z;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec3b operator !=(Vec3i128 left, Vec3i128 right) => new(left.X != right.X, left.Y != right.Y, left.Z != right.Z);
+    public static bool operator !=(Vec3i128 left, Vec3i128 right) => left.X != right.X || left.Y != right.Y || left.Z != right.Z;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec3b operator <(Vec3i128 left, Vec3i128 right) => new(left.X < right.X, left.Y < right.Y, left.Z < right.Z);

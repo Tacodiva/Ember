@@ -146,10 +146,10 @@ public struct Vec3i : IEquatable<Vec3i>, IFormattable {
     public static Vec3b operator !=(int left, Vec3i right) => new(left != right.X, left != right.Y, left != right.Z);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec3b operator ==(Vec3i left, Vec3i right) => new(left.X == right.X, left.Y == right.Y, left.Z == right.Z);
+    public static bool operator ==(Vec3i left, Vec3i right) => left.X == right.X && left.Y == right.Y && left.Z == right.Z;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec3b operator !=(Vec3i left, Vec3i right) => new(left.X != right.X, left.Y != right.Y, left.Z != right.Z);
+    public static bool operator !=(Vec3i left, Vec3i right) => left.X != right.X || left.Y != right.Y || left.Z != right.Z;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec3b operator <(Vec3i left, Vec3i right) => new(left.X < right.X, left.Y < right.Y, left.Z < right.Z);
@@ -279,7 +279,7 @@ public struct Vec3i : IEquatable<Vec3i>, IFormattable {
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly bool Equals(Vec3i other) => (this == other).All();
+    public readonly bool Equals(Vec3i other) => this == other;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override readonly int GetHashCode() => HashCode.Combine(X, Y, Z);

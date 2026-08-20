@@ -58,10 +58,10 @@ public struct Vec3fixed128 {
     public static Vec3b operator !=(Fixed128 left, Vec3fixed128 right) => new(left != right.X, left != right.Y, left != right.Z);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec3b operator ==(Vec3fixed128 left, Vec3fixed128 right) => new(left.X == right.X, left.Y == right.Y, left.Z == right.Z);
+    public static bool operator ==(Vec3fixed128 left, Vec3fixed128 right) => left.X == right.X && left.Y == right.Y && left.Z == right.Z;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec3b operator !=(Vec3fixed128 left, Vec3fixed128 right) => new(left.X != right.X, left.Y != right.Y, left.Z != right.Z);
+    public static bool operator !=(Vec3fixed128 left, Vec3fixed128 right) => left.X != right.X || left.Y != right.Y || left.Z != right.Z;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec3b operator <(Vec3fixed128 left, Vec3fixed128 right) => new(left.X < right.X, left.Y < right.Y, left.Z < right.Z);
@@ -123,7 +123,7 @@ public struct Vec3fixed128 {
 
     public readonly override bool Equals(object? obj) => obj is Vec3fixed128 vec && Equals(vec);
 
-    public readonly bool Equals(Vec3fixed128 obj) => (this == obj).Any();
+    public readonly bool Equals(Vec3fixed128 obj) => this == obj;
 
     public readonly override int GetHashCode() => HashCode.Combine(X, Y, Z);
 

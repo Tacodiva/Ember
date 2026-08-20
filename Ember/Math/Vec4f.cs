@@ -147,10 +147,10 @@ public partial struct Vec4f : IEquatable<Vec4f>, IFormattable {
     public static Vec4b operator !=(float left, Vec4f right) => new(left != right.X, left != right.Y, left != right.Z, left != right.W);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec4b operator ==(Vec4f left, Vec4f right) => new(left.X == right.X, left.Y == right.Y, left.Z == right.Z, left.W == right.W);
+    public static bool operator ==(Vec4f left, Vec4f right) => left.X == right.X && left.Y == right.Y && left.Z == right.Z && left.W == right.W;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec4b operator !=(Vec4f left, Vec4f right) => new(left.X != right.X, left.Y != right.Y, left.Z != right.Z, left.W != right.W);
+    public static bool operator !=(Vec4f left, Vec4f right) => left.X != right.X || left.Y != right.Y || left.Z != right.Z || left.W != right.W;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec4b operator <(Vec4f left, Vec4f right) => new(left.X < right.X, left.Y < right.Y, left.Z < right.Z, left.W < right.W);

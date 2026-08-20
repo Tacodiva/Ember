@@ -131,10 +131,10 @@ public struct Vec3f : IEquatable<Vec3f>, IFormattable {
     public static Vec3b operator !=(float left, Vec3f right) => new(left != right.X, left != right.Y, left != right.Z);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec3b operator ==(Vec3f left, Vec3f right) => new(left.X == right.X, left.Y == right.Y, left.Z == right.Z);
+    public static bool operator ==(Vec3f left, Vec3f right) => left._internal == right._internal;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec3b operator !=(Vec3f left, Vec3f right) => new(left.X != right.X, left.Y != right.Y, left.Z != right.Z);
+    public static bool operator !=(Vec3f left, Vec3f right) => left._internal != right._internal;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec3b operator <(Vec3f left, Vec3f right) => new(left.X < right.X, left.Y < right.Y, left.Z < right.Z);
