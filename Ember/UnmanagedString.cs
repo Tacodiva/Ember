@@ -37,7 +37,7 @@ public unsafe readonly struct UnmanagedString : IEnumerable<char>, IEquatable<Un
 #if EMBER_SAFETY_CHECKS
         if (IsNull) throw new NullReferenceException();
 #endif
-        return Marshal.PtrToStringAnsi((nint) Handle)!;
+        return Marshal.PtrToStringAnsi((nint)Handle)!;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -61,7 +61,7 @@ public unsafe readonly struct UnmanagedString : IEnumerable<char>, IEquatable<Un
     }
 
     public void Dispose() {
-        Marshal.FreeHGlobal((nint) Handle);
+        Marshal.FreeHGlobal((nint)Handle);
     }
 
     public Enumerator GetEnumerator() => new(this);
@@ -86,9 +86,9 @@ public unsafe readonly struct UnmanagedString : IEnumerable<char>, IEquatable<Un
     public bool Equals(UnmanagedString other) {
         if (other.IsNull) return IsNull;
         if (IsNull) return false;
+        if (other.Handle == Handle) return true;
 
-        int i = 0;
-        while (true) {
+        for (int i = 0; ; i++) {
             byte aByte = Handle[i];
             if (aByte != other.Handle[i]) return false;
             if (aByte == 0) return true;
@@ -152,7 +152,7 @@ public unsafe readonly struct UnmanagedString : IEnumerable<char>, IEquatable<Un
 
     public static implicit operator byte*(UnmanagedString value) => value.Handle;
     public static implicit operator void*(UnmanagedString value) => value.Handle;
-    public static implicit operator nint(UnmanagedString value) => (nint) value.Handle;
+    public static implicit operator nint(UnmanagedString value) => (nint)value.Handle;
 
     public static bool operator ==(UnmanagedString left, UnmanagedString right) => left.Equals(right);
     public static bool operator !=(UnmanagedString left, UnmanagedString right) => !left.Equals(right);
