@@ -1,129 +1,191 @@
 
-// using System;
-// using System.Collections;
-// using System.Collections.Generic;
-// using System.Diagnostics;
-// using System.Linq;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Runtime.CompilerServices;
 
-// namespace Ember.Collections;
+namespace Ember.Collections;
 
-// public struct InlineList<T> : IList<T> {
+public struct InlineList<T> : IList<T> {
 
-//     private T[]? _data;
-//     private int _count;
+    private T[]? _items;
+    private int _count;
 
-//     public void Init(int capacity = 2) {
-//         if (capacity != 0) {
-//             _data = new T[capacity];
-//         }
+    public void Init(int capacity = 2) {
+        if (capacity != 0) {
+            _items = new T[capacity];
+        }
 
-//         _count = 0;
-//     }
+        _count = 0;
+    }
 
-//     [Conditional("EMBER_SAFETY_CHECKS")]
-//     internal readonly void ValidateSelf() {
-// #if EMBER_SAFETY_CHECKS
-//         if (_data == null) {
-//             if (_count != 0) throw new InvalidOperationException($"{nameof(_count)} != 0");
-//         } else {
-//             if (_count > _data.Length) throw new InvalidOperationException($"{nameof(_count)} > {nameof(_data)}.Length");
-//             if (_count < 0) throw new InvalidOperationException($"{nameof(_count)} < 0");
-//         }
-// #endif
-//     }
+    [Conditional("EMBER_SAFETY_CHECKS")]
+    internal readonly void ValidateSelf() {
+#if EMBER_SAFETY_CHECKS
+        if (_items == null) {
+            if (_count != 0) throw new InvalidOperationException($"{nameof(_count)} != 0");
+        } else {
+            if (_count > _items.Length) throw new InvalidOperationException($"{nameof(_count)} > {nameof(_items)}.Length");
+            if (_count < 0) throw new InvalidOperationException($"{nameof(_count)} < 0");
+        }
+#endif
+    }
 
-//     [Conditional("EMBER_SAFETY_CHECKS")]
-//     private readonly void ValidateIndex(int index) {
-//         if (index >= Count) throw new IndexOutOfRangeException(nameof(index));
-//         ArgumentOutOfRangeException.ThrowIfNegative(index, nameof(index));
-//     }
+    public readonly T this[int index] {
+        get => Get(index);
+        set => Get(index) = value;
+    }
 
-//     public T this[int index] {
-//         readonly get => Get(index);
-//         set => throw new System.NotImplementedException();
-//     }
+    public readonly int Count => _count;
+    public readonly bool IsReadOnly => false;
+    public readonly ArraySegment<T> Contents => _items == null ? ArraySegment<T>.Empty : new(_items, 0, _count);
 
-//     public readonly int Count => _count;
-//     public readonly bool IsReadOnly => false;
+    public readonly ref T Get(int index) {
+        ValidateSelf();
+        if (index >= _count) throw new IndexOutOfRangeException(nameof(index));
+        ArgumentOutOfRangeException.ThrowIfNegative(index, nameof(index));
+        return ref _items![index];
+    }
 
-//     public readonly T Get(int index) {
-//         ValidateSelf();
-//         ValidateIndex(index);
-//         return _data![index];
-//     }
+    public readonly void Set(int index, in T value) {
+        Get(index) = value;
+    }
 
-//     public readonly void Set(int index, in T value) {
-//         ValidateSelf();
-//         ValidateIndex(index);
-//         _data![index] = value;
-//     }
+    private int GetNewCapacity(int minimum) {
+        Debug.Assert((_items?.Length ?? 0) <= minimum);
+        int newCapacity;
 
-//     public void Add(T item) {
-//         ValidateSelf();
+        if (_items == null) newCapacity = 2;
+        else newCapacity = _items.Length * 2;
 
-//         if (_data == null) {
-//             _data = new T[2];
-//             _data[0] = item;
-//             _count = 1;
-//             return;
-//         }
+        if (newCapacity <= minimum) newCapacity = minimum + 1;
 
-//         int index = _count++;
+        return newCapacity;
+    }
 
-//         if (_data.Length <= index) {
-//             Array.Resize(ref _data, _data.Length * 2);
-//         }
+    public void Add(T item) {
+        AddUninitialized() = item;
+    }
 
-//         _data[index] = item;
-//     }
+    public ref T AddUninitialized() {
+        ValidateSelf();
 
-//     public void Clear() {
-//         ValidateSelf();
+        if (_items == null) {
+            _items = new T[GetNewCapacity(1)];
+            _count = 1;
+            return ref _items[0];
+        }
 
-//         if (_data == null)
-//             return;
+        int index = _count++;
 
-//         for (int i = 0; i < _count; i++)
-//             _data[i] = default!;
+        if (_items.Length <= index) {
+            Array.Resize(ref _items, GetNewCapacity(index));
+        }
 
-//         _count = 0;
-//     }
+        return ref _items[index];
+    }
 
-//     public readonly bool Contains(T item) {
-//         ValidateSelf();
+    public void Clear() {
+        ValidateSelf();
 
-//         if (_data == null) return false;
-//         return _data.Contains(item);
-//     }
+        if (_items == null)
+            return;
 
-//     public readonly void CopyTo(T[] array, int arrayIndex) {
-//         ValidateSelf();
+        if (RuntimeHelpers.IsReferenceOrContainsReferences<T>()) {
+            for (int i = 0; i < _count; i++)
+                _items[i] = default!;
+        }
 
-//         if (_data == null) return;
-//         _data.CopyTo(array, arrayIndex);
-//     }
+        _count = 0;
+    }
 
-//     public IEnumerator<T> GetEnumerator() {
-//         throw new System.NotImplementedException();
-//     }
+    public readonly bool Contains(T item) {
+        ValidateSelf();
+        return Contents.Contains(item);
+    }
 
-//     public int IndexOf(T item) {
-//         throw new System.NotImplementedException();
-//     }
+    public readonly void CopyTo(T[] array, int arrayIndex) {
+        ValidateSelf();
+        Contents.CopyTo(array, arrayIndex);
+    }
 
-//     public void Insert(int index, T item) {
-//         throw new System.NotImplementedException();
-//     }
+    public readonly ArraySegment<T>.Enumerator GetEnumerator() {
+        ValidateSelf();
+        return Contents.GetEnumerator();
+    }
 
-//     public bool Remove(T item) {
-//         throw new System.NotImplementedException();
-//     }
+    public readonly int IndexOf(T item) {
+        ValidateSelf();
+        return _items == null ? -1 : Array.IndexOf(_items, item, 0, _count);
+    }
 
-//     public void RemoveAt(int index) {
-//         throw new System.NotImplementedException();
-//     }
+    internal void GrowForInsertion(int indexToInsert, int insertionCount = 1) {
+        Debug.Assert(insertionCount > 0);
 
-//     IEnumerator IEnumerable.GetEnumerator() {
-//         throw new System.NotImplementedException();
-//     }
-// }
+        int requiredCapacity = _count + insertionCount;
+        int newCapacity = GetNewCapacity(requiredCapacity);
+
+        T[] newItems = new T[newCapacity];
+        if (indexToInsert != 0) {
+            Array.Copy(_items!, newItems, length: indexToInsert);
+        }
+
+        if (_count != indexToInsert) {
+            Array.Copy(_items!, indexToInsert, newItems, indexToInsert + insertionCount, _count - indexToInsert);
+        }
+
+        _items = newItems;
+    }
+
+
+    public void Insert(int index, T item) {
+        InsertUninitialized(index) = item;
+    }
+
+    public ref T InsertUninitialized(int index) {
+        ValidateSelf();
+        if (index > _count) throw new IndexOutOfRangeException(nameof(index));
+        ArgumentOutOfRangeException.ThrowIfNegative(index, nameof(index));
+
+        if (_items == null) {
+            Debug.Assert(index == 0);
+            _items = new T[GetNewCapacity(1)];
+        } else if (_count == _items.Length) {
+            GrowForInsertion(index, 1);
+        } else if (index < _count) {
+            Array.Copy(_items, index, _items, index + 1, _count - index);
+        }
+
+        _count++;
+        return ref _items[index];
+    }
+
+    public bool Remove(T item) {
+        int index = IndexOf(item);
+        if (index >= 0) {
+            RemoveAt(index);
+            return true;
+        }
+
+        return false;
+    }
+
+    public void RemoveAt(int index) {
+        if (index >= _count) throw new IndexOutOfRangeException(nameof(index));
+        ArgumentOutOfRangeException.ThrowIfNegative(index, nameof(index));
+
+        --_count;
+        if (index < _count) {
+            Array.Copy(_items!, index + 1, _items!, index, _count - index);
+        }
+
+        if (RuntimeHelpers.IsReferenceOrContainsReferences<T>()) {
+            _items![_count] = default!;
+        }
+    }
+
+    readonly IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    readonly IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
+}
