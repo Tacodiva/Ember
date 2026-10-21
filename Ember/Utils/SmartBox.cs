@@ -58,7 +58,7 @@ public unsafe readonly struct SmartBox<T> : IDisposable where T : unmanaged, ISm
         _ptr = ptr;
     }
 
-    public SmartBox<T> AquireReference() {
+    public SmartBox<T> AcquireReference() {
         Interlocked.Increment(ref _ptr->ReferenceCount);
         return this;
     }
@@ -69,29 +69,29 @@ public unsafe readonly struct SmartBox<T> : IDisposable where T : unmanaged, ISm
         return copy;
     }
 
-    public SmartBoxWriteLock<T> AquireExclusiveWrite(out SmartBox<T> newReference, bool disposeReference) {
+    public SmartBoxWriteLock<T> AcquireExclusiveWrite(out SmartBox<T> newReference, bool disposeReference) {
         if (_ptr->ReferenceCount == 1) {
-            SmartBoxWriteLock<T> writeLock = AquireWrite();
+            SmartBoxWriteLock<T> writeLock = AcquireWrite();
 
             if (_ptr->ReferenceCount != 1) {
                 newReference = CopyReference();
                 writeLock.Dispose();
                 if (disposeReference) Dispose();
-                return newReference.AquireWrite();
+                return newReference.AcquireWrite();
             }
 
             newReference = this;
             return writeLock;
         } else {
-            using (SmartBoxReadLock<T> readLock = AquireRead())
+            using (SmartBoxReadLock<T> readLock = AcquireRead())
                 newReference = CopyReference();
 
             if (disposeReference) Dispose();
-            return newReference.AquireWrite();
+            return newReference.AcquireWrite();
         }
     }
 
-    public SmartBoxWriteLock<T> AquireWrite() {
+    public SmartBoxWriteLock<T> AcquireWrite() {
         if (UnsafeInterlocked.CompareExchange(
             &_ptr->State.Lock, SmartBoxLock.Writing, SmartBoxLock.None
         ) == SmartBoxLock.None)
@@ -110,7 +110,7 @@ public unsafe readonly struct SmartBox<T> : IDisposable where T : unmanaged, ISm
         return new(_ptr);
     }
 
-    public SmartBoxReadLock<T> AquireRead() {
+    public SmartBoxReadLock<T> AcquireRead() {
         bool firstIteration = true;
 
         while (true) {
@@ -164,7 +164,7 @@ public unsafe readonly struct SmartBox<T> : IDisposable where T : unmanaged, ISm
 
     public void Dispose() {
         if (Interlocked.Decrement(ref _ptr->ReferenceCount) == 0) {
-            AquireWrite();
+            AcquireWrite();
             _ptr->Value.Dispose();
             MemoryUtils.Free(_ptr);
         }

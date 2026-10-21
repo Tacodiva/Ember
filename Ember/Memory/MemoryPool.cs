@@ -16,7 +16,7 @@ public unsafe sealed class MemoryPool : IDisposable {
 
     public int BorrowedAllocationCount {
         get {
-            using (var @lock = ReferenceSpinLock.Aquire(ref _lock)) {
+            using (var @lock = SlimSpinLock.Acquire(ref _lock)) {
                 return AllocationCount - _pool.Count;
             }
         }
@@ -24,7 +24,7 @@ public unsafe sealed class MemoryPool : IDisposable {
 
     public int BorrowedSizeBytes => BorrowedAllocationCount * AllocationLengthBytes;
 
-    private SpinLockValue _lock;
+    private SlimSpinLock _lock;
     private UnmanagedInlineList<Ptr> _pool;
 
     public MemoryPool(int spanLength, int maxSizeBytes = -1) {
@@ -34,7 +34,7 @@ public unsafe sealed class MemoryPool : IDisposable {
     }
 
     public MemorySpan Borrow() {
-        using (var @lock = ReferenceSpinLock.Aquire(ref _lock)) {
+        using (var @lock = SlimSpinLock.Acquire(ref _lock)) {
             if (_pool.TryPop(out Ptr allocation)) {
                 return new(allocation, AllocationLengthBytes);
             }
@@ -47,12 +47,12 @@ public unsafe sealed class MemoryPool : IDisposable {
     public void Return(MemorySpan span) {
         if (span.LengthLong != AllocationLengthBytes) throw new ArgumentException($"Span of length {span.LengthLong} is not the expected length {AllocationLengthBytes}.");
 
-        ReferenceSpinLock.Aquire(ref _lock);
+        SlimSpinLock.Acquire(ref _lock);
 
         if (MaxAllocationCount != -1 && AllocationCount > MaxAllocationCount) {
             --AllocationCount;
 
-            ReferenceSpinLock.Release(ref _lock);
+            SlimSpinLock.Release(ref _lock);
 
             MemoryUtils.Free(span);
             return;
@@ -60,11 +60,11 @@ public unsafe sealed class MemoryPool : IDisposable {
 
         _pool.Add(span.Pointer);
 
-        ReferenceSpinLock.Release(ref _lock);
+        SlimSpinLock.Release(ref _lock);
     }
 
     public void Clear() {
-        using (var @lock = ReferenceSpinLock.Aquire(ref _lock)) {
+        using (var @lock = SlimSpinLock.Acquire(ref _lock)) {
             AllocationCount -= _pool.Count;
 
             foreach (Ptr allocation in _pool)

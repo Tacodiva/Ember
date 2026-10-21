@@ -15,7 +15,7 @@ public static class UnmanagedInlineHashTable {
         where TKey : allows ref struct
         where TValue : unmanaged
         where TValueRef : allows ref struct
-        where TMethods : struct, IHashTableMethods<TKey, TValue, TValueRef> {
+        where TMethods : struct, IUnmanagedHashTableMethods<TKey, TValue, TValueRef> {
         return new(ref @this);
     }
 }
@@ -24,7 +24,7 @@ public unsafe struct UnmanagedInlineHashTable<TKey, TValue, TValueRef, TMethods>
     where TKey : allows ref struct
     where TValue : unmanaged
     where TValueRef : allows ref struct
-    where TMethods : struct, IHashTableMethods<TKey, TValue, TValueRef> {
+    where TMethods : struct, IUnmanagedHashTableMethods<TKey, TValue, TValueRef> {
 
     private struct Entry {
 #if EMBER_SAFETY_CHECKS
@@ -33,7 +33,7 @@ public unsafe struct UnmanagedInlineHashTable<TKey, TValue, TValueRef, TMethods>
 
         public TValue Value;
         public Entry* Next;
-        public uint HashCode;
+        public int HashCode;
         public bool Allocated;
     }
 
@@ -94,18 +94,13 @@ public unsafe struct UnmanagedInlineHashTable<TKey, TValue, TValueRef, TMethods>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private uint GetBucketIndex(uint hash) {
-        return HashUtils.FastMod(hash & 0x7FFFFFFF, (uint)_bucketsCapacity, _bucketsCapacityMultiplier);
+    private uint GetBucketIndex(int hash) {
+        return HashUtils.FastMod((uint)hash & 0x7FFFFFFF, (uint)_bucketsCapacity, _bucketsCapacityMultiplier);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private uint GetBucketIndex(Entry* entry) {
         return GetBucketIndex(entry->HashCode);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint CalculateHashCode(in TValue key) {
-        return (uint)key.GetHashCode();
     }
 
 
@@ -245,7 +240,7 @@ public unsafe struct UnmanagedInlineHashTable<TKey, TValue, TValueRef, TMethods>
         ValidateSelf();
         IncrementModificationNumber();
 
-        uint hashCode = TMethods.GetValueRefHashCode(valueRef);
+        int hashCode = TMethods.GetValueRefHashCode(valueRef);
         uint bucketIndex = GetBucketIndex(hashCode);
         Entry* bucketEntry = &_buckets[bucketIndex];
 
@@ -257,15 +252,18 @@ public unsafe struct UnmanagedInlineHashTable<TKey, TValue, TValueRef, TMethods>
                 if (entry->HashCode == hashCode && TMethods.IsValueRefValueEqual(valueRef, &entry->Value)) {
                     if (!replace)
                         return false;
+                    Console.WriteLine("Replace.");
                     TMethods.DereferenceValue(valueRef, &entry->Value);
                     return true;
                 }
                 entry = entry->Next;
             } while (entry != null);
+            Console.WriteLine("Linked entry.");
             entry = AllocateLinkedEntry();
             entry->Next = bucketEntry->Next;
             bucketEntry->Next = entry;
         } else {
+            Console.WriteLine("Bucket.");
             entry->Next = null;
         }
 
@@ -295,7 +293,7 @@ public unsafe struct UnmanagedInlineHashTable<TKey, TValue, TValueRef, TMethods>
         ValidateSelf();
         IncrementModificationNumber();
 
-        uint hashCode = TMethods.GetKeyHashCode(key);
+        int hashCode = TMethods.GetKeyHashCode(key);
         uint bucketIndex = GetBucketIndex(hashCode);
         Entry* entry = &_buckets[bucketIndex];
 
@@ -325,7 +323,7 @@ public unsafe struct UnmanagedInlineHashTable<TKey, TValue, TValueRef, TMethods>
         ValidateSelf();
         IncrementModificationNumber();
 
-        uint hashCode = TMethods.GetValueRefHashCode(replaceValueRef);
+        int hashCode = TMethods.GetValueRefHashCode(replaceValueRef);
         uint bucketIndex = GetBucketIndex(hashCode);
 
         Entry* bucketEntry = &_buckets[bucketIndex];
@@ -376,49 +374,50 @@ public unsafe struct UnmanagedInlineHashTable<TKey, TValue, TValueRef, TMethods>
         ValidateSelf();
         IncrementModificationNumber();
 
-        uint hashCode = TMethods.GetKeyHashCode(key);
+        int hashCode = TMethods.GetKeyHashCode(key);
         uint bucketIndex = GetBucketIndex(hashCode);
         Entry* entry = &_buckets[bucketIndex];
         Entry* beforeEntry = null;
 
-        if (entry->Allocated) {
-            do {
-                ValidateEntry(entry, true);
+        if (!entry->Allocated)
+            return false;
 
-                if (entry->HashCode == hashCode && TMethods.IsKeyValueEqual(key, &entry->Value)) {
-                    --_count;
+        do {
+            ValidateEntry(entry, true);
 
-                    if (outValue != null)
-                        *outValue = entry->Value;
+            if (entry->HashCode == hashCode && TMethods.IsKeyValueEqual(key, &entry->Value)) {
+                --_count;
 
-                    // Is this a bucket entry?
-                    if (beforeEntry == null) {
-                        // If so, do we have a link to another entry?
-                        if (entry->Next == null) {
-                            // If we have no linked entry, this bucket now has no elements.
-                            entry->Allocated = false;
-                        } else {
-                            // If we have a linked entry, we need to promote it to a bucket entry. 
-                            // Copy it into the right place
-                            Entry* linkedEntry = entry->Next;
-                            *entry = *linkedEntry;
-                            // Free the old linked entry
-                            FreeLinkedEntry(linkedEntry);
-                        }
+                if (outValue != null)
+                    *outValue = entry->Value;
+
+                // Is this a bucket entry?
+                if (beforeEntry == null) {
+                    // If so, do we have a link to another entry?
+                    if (entry->Next == null) {
+                        // If we have no linked entry, this bucket now has no elements.
+                        entry->Allocated = false;
                     } else {
-                        // This is a linked entry.
-                        // Remove it from the linked list and free it
-                        beforeEntry->Next = entry->Next;
-                        FreeLinkedEntry(entry);
+                        // If we have a linked entry, we need to promote it to a bucket entry. 
+                        // Copy it into the right place
+                        Entry* linkedEntry = entry->Next;
+                        *entry = *linkedEntry;
+                        // Free the old linked entry
+                        FreeLinkedEntry(linkedEntry);
                     }
-
-                    return true;
+                } else {
+                    // This is a linked entry.
+                    // Remove it from the linked list and free it
+                    beforeEntry->Next = entry->Next;
+                    FreeLinkedEntry(entry);
                 }
 
-                beforeEntry = entry;
-                entry = entry->Next;
-            } while (entry != null);
-        }
+                return true;
+            }
+
+            beforeEntry = entry;
+            entry = entry->Next;
+        } while (entry != null);
 
         return false;
     }

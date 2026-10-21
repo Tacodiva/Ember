@@ -16,13 +16,13 @@ public unsafe readonly struct UnmanagedHashSet<T> : ISet<T>, IDisposable where T
 
     private readonly UnmanagedHashTable<ValuePtr<T>, T, ValuePtr<T>, HashTableMethods> _table;
 
-    internal readonly struct HashTableMethods : IConcurrentHashTableMethods<ValuePtr<T>, T, ValuePtr<T>, T> {
+    internal readonly struct HashTableMethods : IUnmanagedConcurrentHashTableMethods<ValuePtr<T>, T, ValuePtr<T>, T> {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static uint GetKeyHashCode(ValuePtr<T> key) => (uint)key.Get().GetHashCode();
+        public static int GetKeyHashCode(ValuePtr<T> key) => (int)key.Get().GetHashCode();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static uint GetValueHashCode(T* value) => (uint)value->GetHashCode();
+        public static int GetValueHashCode(T* value) => (int)value->GetHashCode();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsKeyValueEqual(ValuePtr<T> key, T* value) {
@@ -34,8 +34,8 @@ public unsafe readonly struct UnmanagedHashSet<T> : ISet<T>, IDisposable where T
             return EqualityComparer<T>.Default.Equals(*a, *b);
         }
 
-        public static uint GetValueRefHashCode(ValuePtr<T> valueRef) {
-            return (uint) valueRef.Get().GetHashCode();
+        public static int GetValueRefHashCode(ValuePtr<T> valueRef) {
+            return valueRef.Get().GetHashCode();
         }
 
         public static bool IsValueRefValueEqual(ValuePtr<T> valueRef, T* value) {

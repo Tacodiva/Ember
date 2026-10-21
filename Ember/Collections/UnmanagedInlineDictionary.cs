@@ -24,13 +24,13 @@ public unsafe struct UnmanagedInlineDictionary<TKey, TValue> : IDisposable where
 
     private UnmanagedInlineHashTable<ValuePtr<TKey>, TableValue, TableValueRef, HashTableMethods> _table;
 
-    internal readonly struct HashTableMethods : IHashTableMethods<ValuePtr<TKey>, TableValue, TableValueRef> {
+    internal readonly struct HashTableMethods : IUnmanagedHashTableMethods<ValuePtr<TKey>, TableValue, TableValueRef> {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static uint GetKeyHashCode(ValuePtr<TKey> key) => (uint)key.Get().GetHashCode();
+        public static int GetKeyHashCode(ValuePtr<TKey> key) => key.Get().GetHashCode();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static uint GetValueHashCode(TableValue* value) => (uint)value->Key.GetHashCode();
+        public static int GetValueHashCode(TableValue* value) => value->Key.GetHashCode();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsKeyValueEqual(ValuePtr<TKey> key, TableValue* value) {
@@ -43,8 +43,8 @@ public unsafe struct UnmanagedInlineDictionary<TKey, TValue> : IDisposable where
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static uint GetValueRefHashCode(TableValueRef valueRef) {
-            return (uint)valueRef.Key.Get().GetHashCode();
+        public static int GetValueRefHashCode(TableValueRef valueRef) {
+            return valueRef.Key.Get().GetHashCode();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -160,11 +160,13 @@ public unsafe struct UnmanagedInlineDictionary<TKey, TValue> : IDisposable where
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [UnscopedRef]
     public ref TValue TryGetValueRef(TKey key) {
         return ref Unsafe.AsRef<TValue>(TryGetValuePointer(key));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [UnscopedRef]
     public ref TValue GetValueRef(TKey key) {
         return ref Unsafe.AsRef<TValue>(GetValuePointer(key));
     }

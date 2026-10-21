@@ -12,7 +12,7 @@ internal unsafe readonly struct UnmanagedHashTable<TKey, TValue, TValueRef, TMet
     IEnumerable<Ptr<TValue>>, IDisposable,
     IPtrWrapper<UnmanagedInlineHashTable<TKey, TValue, TValueRef, TMethods>>
     where TValue : unmanaged
-    where TMethods : struct, IHashTableMethods<TKey, TValue, TValueRef> {
+    where TMethods : struct, IUnmanagedHashTableMethods<TKey, TValue, TValueRef> {
 
     public static UnmanagedHashTable<TKey, TValue, TValueRef, TMethods> Allocate(int capacity = 16, int buckets = 17) {
         UnmanagedInlineHashTable<TKey, TValue, TValueRef, TMethods>* ptr = MemoryUtils.AllocateUninitialized<UnmanagedInlineHashTable<TKey, TValue, TValueRef, TMethods>>();

@@ -29,13 +29,13 @@ public unsafe readonly struct UnmanagedDictionary<TKey, TValue> : IDictionary<TK
 
     private readonly UnmanagedHashTable<ValuePtr<TKey>, TableValue, TableValueRef, HashTableMethods> _table;
 
-    internal readonly struct HashTableMethods : IConcurrentHashTableMethods<ValuePtr<TKey>, TableValue, TableValueRef, TValue> {
+    internal readonly struct HashTableMethods : IUnmanagedConcurrentHashTableMethods<ValuePtr<TKey>, TableValue, TableValueRef, TValue> {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static uint GetKeyHashCode(ValuePtr<TKey> key) => (uint)key.Get().GetHashCode();
+        public static int GetKeyHashCode(ValuePtr<TKey> key) => (int)key.Get().GetHashCode();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static uint GetValueHashCode(TableValue* value) => (uint)value->Key.GetHashCode();
+        public static int GetValueHashCode(TableValue* value) => (int)value->Key.GetHashCode();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsKeyValueEqual(ValuePtr<TKey> key, TableValue* value) {
@@ -48,8 +48,8 @@ public unsafe readonly struct UnmanagedDictionary<TKey, TValue> : IDictionary<TK
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static uint GetValueRefHashCode(TableValueRef valueRef) {
-            return (uint)valueRef.Key.Get().GetHashCode();
+        public static int GetValueRefHashCode(TableValueRef valueRef) {
+            return valueRef.Key.Get().GetHashCode();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

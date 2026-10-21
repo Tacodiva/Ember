@@ -16,7 +16,7 @@ internal unsafe readonly struct UnmanagedConcurrentHashTable<TKey, TValue, TValu
     where TValue : unmanaged
     where TValueRef : allows ref struct
     where TValueOut : unmanaged
-    where TMethods : struct, IConcurrentHashTableMethods<TKey, TValue, TValueRef, TValueOut> {
+    where TMethods : struct, IUnmanagedConcurrentHashTableMethods<TKey, TValue, TValueRef, TValueOut> {
 
     public static UnmanagedConcurrentHashTable<TKey, TValue, TValueRef, TValueOut, TMethods> Allocate(int capacity = 16, int buckets = 17) {
         UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef, TValueOut, TMethods>* table = MemoryUtils.AllocateUninitialized<UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef, TValueOut, TMethods>>();

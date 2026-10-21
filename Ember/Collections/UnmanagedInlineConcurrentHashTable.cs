@@ -12,8 +12,8 @@ using Ember.Utils;
 
 namespace Ember.Collections;
 
-public unsafe interface IConcurrentHashTableMethods<TKey, TValue, TValueRef, TValueOut>
-    : IHashTableMethods<TKey, TValue, TValueRef>
+public unsafe interface IUnmanagedConcurrentHashTableMethods<TKey, TValue, TValueRef, TValueOut>
+    : IUnmanagedHashTableMethods<TKey, TValue, TValueRef>
     where TKey : allows ref struct
     where TValue : unmanaged
     where TValueRef : allows ref struct
@@ -30,7 +30,7 @@ public static class UnmanagedInlineConcurrentHashTable {
         where TValue : unmanaged
         where TValueRef : allows ref struct
         where TValueOut : unmanaged
-        where TMethods : struct, IConcurrentHashTableMethods<TKey, TValue, TValueRef, TValueOut> {
+        where TMethods : struct, IUnmanagedConcurrentHashTableMethods<TKey, TValue, TValueRef, TValueOut> {
         return new(ref @this);
     }
 }
@@ -41,17 +41,17 @@ public unsafe struct UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef,
     where TValue : unmanaged
     where TValueRef : allows ref struct
     where TValueOut : unmanaged
-    where TMethods : struct, IConcurrentHashTableMethods<TKey, TValue, TValueRef, TValueOut> {
+    where TMethods : struct, IUnmanagedConcurrentHashTableMethods<TKey, TValue, TValueRef, TValueOut> {
 
 #if !DEBUG
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
     private static void WaitForEqual<T>(ref T value, T comparand) where T : unmanaged {
-        if (EqualityComparer<T>.Default.Equals(value, comparand)) return;
+        if (EqualityComparer<T>.Default.Equals(UnsafeVolatile.Read(ref value), comparand)) return;
         SpinWait wait = new();
         do {
             wait.SpinOnce();
-        } while (!EqualityComparer<T>.Default.Equals(value, comparand));
+        } while (!EqualityComparer<T>.Default.Equals(UnsafeVolatile.Read(ref value), comparand));
     }
 
     private struct Entry {
@@ -61,12 +61,12 @@ public unsafe struct UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef,
 
         public TValue Value;
         public Entry* Next;
-        public uint HashCode;
+        public int HashCode;
         public bool Allocated;
     }
 
     private struct Bucket {
-        public SpinLockValue Lock;
+        public SlimSpinLock Lock;
         public Entry Head;
     }
 
@@ -215,14 +215,14 @@ public unsafe struct UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef,
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
     private void EnterBucketLock(Bucket* bucket) {
-        UnmanagedSpinLock.Aquire(&bucket->Lock);
+        SlimSpinLock.Acquire(&bucket->Lock);
     }
 
 #if !DEBUG
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
     private void ExitBucketLock(Bucket* bucket) {
-        UnmanagedSpinLock.Release(&bucket->Lock);
+        SlimSpinLock.Release(&bucket->Lock);
     }
 
 #if !DEBUG
@@ -271,18 +271,13 @@ public unsafe struct UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef,
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private uint GetBucketIndex(uint hash) {
-        return HashUtils.FastMod(hash & 0x7FFFFFFF, (uint)_bucketsCapacity, _bucketsCapacityMultiplier);
+    private uint GetBucketIndex(int hash) {
+        return HashUtils.FastMod((uint)hash & 0x7FFFFFFF, (uint)_bucketsCapacity, _bucketsCapacityMultiplier);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private uint GetBucketIndex(Entry* entry) {
         return GetBucketIndex(entry->HashCode);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint CalculateHashCode(in TValue key) {
-        return (uint)key.GetHashCode();
     }
 
 #if !DEBUG
@@ -466,7 +461,7 @@ public unsafe struct UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef,
         try {
             IncrementModificationNumber();
 
-            uint hashCode = TMethods.GetValueRefHashCode(valueRef);
+            int hashCode = TMethods.GetValueRefHashCode(valueRef);
             uint bucketIndex = GetBucketIndex(hashCode);
             Bucket* bucket = &_buckets[bucketIndex];
 
@@ -537,7 +532,7 @@ public unsafe struct UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef,
         try {
             IncrementModificationNumber();
 
-            uint hashCode = TMethods.GetKeyHashCode(key);
+            int hashCode = TMethods.GetKeyHashCode(key);
             uint bucketIndex = GetBucketIndex(hashCode);
             Bucket* bucket = &_buckets[bucketIndex];
 
@@ -583,7 +578,7 @@ public unsafe struct UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef,
         try {
             IncrementModificationNumber();
 
-            uint hashCode = TMethods.GetValueRefHashCode(valueRef);
+            int hashCode = TMethods.GetValueRefHashCode(valueRef);
             uint bucketIndex = GetBucketIndex(hashCode);
 
             Bucket* bucket = &_buckets[bucketIndex];
@@ -642,21 +637,21 @@ public unsafe struct UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef,
     public delegate void ValueFactory<TArg>(in TArg arg, TValue* dst);
 
 
-    public bool GetOrAdd<TArg>(TKey key, TValue* outValue, ValueFactory<TArg> factory, in TArg argument) {
+    public bool GetOrAdd<TArg>(TKey key, TValueOut* outValue, ValueFactory<TArg> factory, in TArg argument) {
         return InlineGetOrAdd<TArg>(key, outValue, factory, argument);
     }
 
 #if !DEBUG
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-    public bool InlineGetOrAdd<TArg>(TKey key, TValue* outValue, ValueFactory<TArg> factory, in TArg argument) {
+    public bool InlineGetOrAdd<TArg>(TKey key, TValueOut* outValue, ValueFactory<TArg> factory, in TArg argument) {
         ValidateSelf();
         EnterPointerReadLock();
 
         try {
             IncrementModificationNumber();
 
-            uint hashCode = TMethods.GetKeyHashCode(key);
+            int hashCode = TMethods.GetKeyHashCode(key);
             uint bucketIndex = GetBucketIndex(hashCode);
 
             Bucket* bucket = &_buckets[bucketIndex];
@@ -670,7 +665,7 @@ public unsafe struct UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef,
                         ValidateEntry(entry, true);
 
                         if (entry->HashCode == hashCode && TMethods.IsKeyValueEqual(key, &entry->Value)) {
-                            *outValue = entry->Value;
+                            TMethods.CopyValueOut(&entry->Value, outValue);
                             return false;
                         }
 
@@ -692,9 +687,9 @@ public unsafe struct UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef,
 
                 entry->Allocated = true;
 
-                factory(argument, outValue);
+                factory(argument, &entry->Value);
+                TMethods.CopyValueOut(&entry->Value, outValue);
 
-                entry->Value = *outValue;
                 entry->HashCode = hashCode;
                 EndValueWrite();
 
@@ -724,7 +719,7 @@ public unsafe struct UnmanagedInlineConcurrentHashTable<TKey, TValue, TValueRef,
         try {
             IncrementModificationNumber();
 
-            uint hashCode = TMethods.GetKeyHashCode(key);
+            int hashCode = TMethods.GetKeyHashCode(key);
             uint bucketIndex = GetBucketIndex(hashCode);
             Bucket* bucket = &_buckets[bucketIndex];
 
