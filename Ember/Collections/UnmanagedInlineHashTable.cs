@@ -258,12 +258,10 @@ public unsafe struct UnmanagedInlineHashTable<TKey, TValue, TValueRef, TMethods>
                 }
                 entry = entry->Next;
             } while (entry != null);
-            Console.WriteLine("Linked entry.");
             entry = AllocateLinkedEntry();
             entry->Next = bucketEntry->Next;
             bucketEntry->Next = entry;
         } else {
-            Console.WriteLine("Bucket.");
             entry->Next = null;
         }
 
